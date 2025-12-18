@@ -63,7 +63,7 @@ Render.com oferă cron jobs gratuite.
 
 3. **Configurează Environment Variables:**
    - În settings-ul cron job-ului, adaugă:
-     - `TELEGRAM_BOT_TOKEN` = `8163333919:AAHi7Zs-OrNlUX_sisTIQBmIQ6MZVcsYDUM`
+     - `TELEGRAM_BOT_TOKEN` = `secret`
      - `TELEGRAM_CHAT_ID` = `679733568`
 
 4. **Deploy:**
