@@ -76,13 +76,14 @@ class OlxScraper:
                     return int(pages[-1].text)
         return None
 
-    def scrape_ads_urls(self, target_url: str) -> list:
+    def scrape_ads_urls(self, target_url: str, max_pages: int = 2) -> list:
         """
-        Scrapes the URLs of all valid ads present on an OLX page. Search all relevant
-        URLs of the ads and adds them to a set. Parses all pages, from first to last.
+        Scrapes the URLs of all valid ads present on an OLX page. 
+        Only scrapes the first few pages to get the most recent ads.
 
         Args:
             target_url (str): URL of the OLX page to start the search from.
+            max_pages (int): Maximum number of pages to scrape (default: 2 for recent ads only).
 
         Returns:
             list: a list of relevant URLs of the ads found on the page.
@@ -98,12 +99,13 @@ class OlxScraper:
         # Remove query parameters for proper pagination
         clean_url = target_url.split('?')[0] if '?' in target_url else target_url
         has_query_params = '?' in target_url
-        logging.info(f"Scraping URL: {clean_url} (original had query params: {has_query_params})")
+        logging.info(f"Scraping URL: {clean_url} (original had query params: {has_query_params}, max pages: {max_pages})")
         
         if self.netloc != urlparse(clean_url).netloc:
             raise ValueError(
                 f"Bad URL! OLXRadar is configured to process {self.netloc} links only.")
-        while True:
+        
+        while self.current_page <= max_pages:
             url = f"{clean_url}/?page={self.current_page}"
             logging.debug(f"Fetching page {self.current_page}: {url}")
             parsed_content = self.parse_content(url)
@@ -112,7 +114,6 @@ class OlxScraper:
                 logging.warning(f"Failed to parse page {self.current_page}, stopping")
                 break
                 
-            self.last_page = self.get_last_page(parsed_content)
             ads = self.get_ads(parsed_content)
             
             if ads is None or len(ads) == 0:
@@ -137,11 +138,14 @@ class OlxScraper:
             ads_added = len(ads_links) - ads_before_filter
             logging.debug(f"Added {ads_added} new ad URLs from page {self.current_page}")
             
-            if self.last_page is None or self.current_page >= self.last_page:
-                logging.info(f"Reached last page ({self.last_page}) or no pagination found")
+            # Stop if we've reached max pages
+            if self.current_page >= max_pages:
+                logging.info(f"Reached max pages limit ({max_pages}), stopping")
                 break
+                
             self.current_page += 1
-        logging.info(f"Total ads scraped: {len(ads_links)}")
+            
+        logging.info(f"Total ads scraped from {self.current_page} page(s): {len(ads_links)}")
         return list(ads_links)
 
     def is_relevant_url(self, url: str) -> bool:
