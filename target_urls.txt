@@ -1,1 +1,5 @@
-https://www.olx.ro/oferte/q-raspberry-pi/
+https://www.olx.ro/oferte/q-canon/?min_id=297238328&reason=observed_search&search%5Border%5D=created_at%3Adesc
+https://www.olx.ro/oferte/q-nikon/?min_id=297234766&reason=observed_search&search%5Border%5D=created_at%3Adesc
+https://www.olx.ro/oferte/q-sony/?min_id=297238384&reason=observed_search&search%5Border%5D=created_at%3Adesc
+https://www.olx.ro/oferte/q-aparat%20foto/?min_id=297238618&reason=observed_search&search%5Border%5D=created_at%3Adesc
+https://www.olx.ro/oferte/q-camera%20foto/?min_id=297238355&reason=observed_search&search%5Border%5D=created_at%3Adesc

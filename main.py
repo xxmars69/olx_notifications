@@ -77,7 +77,7 @@ def get_new_ads_urls_for_url(target_url: str) -> list:
 def main() -> None:
     """
     Main function. Collects and processes ads
-    and sends notifications by email and Telegram.
+    and sends notifications via Telegram.
     """
 
     target_urls = load_target_urls()
@@ -97,7 +97,6 @@ def main() -> None:
         if new_ads:
             message_subject, message_body = Messenger.generate_email_content(
                 target_url, new_ads)
-            Messenger.send_email_message(message_subject, message_body)
             Messenger.send_telegram_message(message_subject, message_body)
 
         # Add the processed ads to database
