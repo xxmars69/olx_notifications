@@ -123,20 +123,49 @@ class OlxScraper:
             logging.info(f"Found {len(ads)} ads on page {self.current_page}")
             
             ads_before_filter = len(ads_links)
+            links_found = 0
+            links_no_href = 0
+            links_not_internal = 0
+            links_not_relevant = 0
+            links_added = 0
+            
             for ad in ads:
                 link = ad.find("a", class_="css-rc5s2u")
-                if link is not None and link.has_attr("href"):
+                if link is None:
+                    # Try to find link with any class or without class
+                    link = ad.find("a")
+                    if link is None:
+                        continue
+                    else:
+                        logging.warning(f"Link found without expected class 'css-rc5s2u' on page {self.current_page}")
+                
+                if link is not None:
+                    links_found += 1
+                    if not link.has_attr("href"):
+                        links_no_href += 1
+                        continue
+                        
                     link_href = link["href"]
+                    original_href = link_href
+                    
                     if not self.is_internal_url(link_href, self.netloc):
+                        links_not_internal += 1
+                        logging.debug(f"Skipped non-internal URL: {link_href}")
                         continue
+                        
                     if not self.is_relevant_url(link_href):
+                        links_not_relevant += 1
+                        logging.debug(f"Skipped non-relevant URL (has query params): {link_href}")
                         continue
+                        
                     if self.is_relative_url(link_href):
                         link_href = f"{self.schema}://{self.netloc}{link_href}"
+                    
                     ads_links.add(link_href)
+                    links_added += 1
             
             ads_added = len(ads_links) - ads_before_filter
-            logging.debug(f"Added {ads_added} new ad URLs from page {self.current_page}")
+            logging.info(f"Page {self.current_page} stats: {links_found} links found, {links_no_href} without href, {links_not_internal} not internal, {links_not_relevant} not relevant, {links_added} URLs added")
             
             # Stop if we've reached max pages
             if self.current_page >= max_pages:
