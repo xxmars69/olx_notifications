@@ -140,7 +140,7 @@ class Messenger():
                 response = requests.get(endpoint, params=params)
                 response.raise_for_status()
                 if response.json()["ok"]:
-                    logging.info("Email notification sent successfully")
+                    logging.info("Telegram notification sent successfully")
                 else:
                     logging.error(
                         "Error sending Telegram notification")

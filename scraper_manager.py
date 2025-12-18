@@ -89,16 +89,23 @@ class OlxScraper:
             ValueError: If the URL is invalid or does not belong to the specified domain.
         """
         ads_links = set()
-        if self.netloc != urlparse(target_url).netloc:
+        # Reset page counter for each new scrape
+        self.current_page = 1
+        self.last_page = None
+        
+        # Remove query parameters for proper pagination
+        clean_url = target_url.split('?')[0] if '?' in target_url else target_url
+        
+        if self.netloc != urlparse(clean_url).netloc:
             raise ValueError(
                 f"Bad URL! OLXRadar is configured to process {self.netloc} links only.")
         while True:
-            url = f"{target_url}/?page={self.current_page}"
+            url = f"{clean_url}/?page={self.current_page}"
             parsed_content = self.parse_content(url)
             self.last_page = self.get_last_page(parsed_content)
             ads = self.get_ads(parsed_content)
             if ads is None:
-                return ads_links
+                return list(ads_links)
             for ad in ads:
                 link = ad.find("a", class_="css-rc5s2u")
                 if link is not None and link.has_attr("href"):
@@ -113,7 +120,7 @@ class OlxScraper:
             if self.last_page is None or self.current_page >= self.last_page:
                 break
             self.current_page += 1
-        return ads_links
+        return list(ads_links)
 
     def is_relevant_url(self, url: str) -> bool:
         """

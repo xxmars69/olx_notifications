@@ -81,13 +81,22 @@ def main() -> None:
     """
 
     target_urls = load_target_urls()
+    if not target_urls:
+        logging.warning("No target URLs found in target_urls.txt")
+        return
+    
+    logging.info(f"Starting scraper for {len(target_urls)} URL(s)")
+    
     for target_url in target_urls:
-        ads_urls = get_new_ads_urls_for_url(target_url)
-
-        # Filter out the already processed ads
-        new_ads_urls = get_new_ads_urls(ads_urls)
+        logging.info(f"Processing URL: {target_url}")
+        # get_new_ads_urls_for_url already filters new ads, no need to filter again
+        new_ads_urls = get_new_ads_urls_for_url(target_url)
+        
         if not new_ads_urls:
+            logging.info(f"No new ads found for {target_url}")
             continue
+
+        logging.info(f"Found {len(new_ads_urls)} new ad URLs, processing...")
 
         # Process ads in parallel, for increased speed
         with Pool(10) as pool:
@@ -95,13 +104,18 @@ def main() -> None:
         new_ads = list(filter(None, new_ads))
 
         if new_ads:
+            logging.info(f"Successfully extracted {len(new_ads)} ads, sending notification...")
             message_subject, message_body = Messenger.generate_email_content(
                 target_url, new_ads)
             Messenger.send_telegram_message(message_subject, message_body)
+        else:
+            logging.warning(f"Found {len(new_ads_urls)} new URLs but couldn't extract data from them")
 
         # Add the processed ads to database
         for url in new_ads_urls:
             db.add_url(url)
+        
+        logging.info(f"Completed processing for {target_url}")
 
 
 if __name__ == "__main__":
