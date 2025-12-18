@@ -2,8 +2,8 @@ name: OLX Scraper
 
 on:
   schedule:
-    # Rulează la fiecare 30 de minute
-    - cron: '*/30 * * * *'
+    # Rulează la fiecare 8 minute
+    - cron: '*/8 * * * *'
   workflow_dispatch: # Permite rularea manuală
 
 jobs:
