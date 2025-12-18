@@ -29,11 +29,15 @@ class OlxScraper:
             BeautifulSoup: An object representing the processed content,
             or None in case of error.
         """
+        import time
         try:
+            # Add delay to avoid 403 errors
+            time.sleep(1)
             r = requests.get(target_url, headers=self.headers, timeout=60)
             r.raise_for_status()
         except requests.exceptions.RequestException as error:
             logging.error(f"Connection error: {error}")
+            return None
         else:
             parsed_content = BeautifulSoup(r.text, "html.parser")
             return parsed_content
@@ -98,6 +102,8 @@ class OlxScraper:
         
         # Remove query parameters for proper pagination
         clean_url = target_url.split('?')[0] if '?' in target_url else target_url
+        # Remove trailing slash to avoid double slashes
+        clean_url = clean_url.rstrip('/')
         has_query_params = '?' in target_url
         logging.info(f"Scraping URL: {clean_url} (original had query params: {has_query_params}, max pages: {max_pages})")
         
@@ -245,30 +251,64 @@ class OlxScraper:
             dict or None: A dictionary containing the scraped ad data
             or None if the required information is missing.
         """
-        logging.info(f"Processing {ad_url}")
+        logging.debug(f"Processing {ad_url}")
         content = self.parse_content(ad_url)
 
         if content is None:
+            logging.warning(f"Could not parse content for {ad_url}")
             return None
 
+        # Try multiple selectors for title
         title = None
-        if content.find("h1", class_="css-1soizd2"):
-            title = content.find(
-                "h1", class_="css-1soizd2").get_text(strip=True)
+        title_selectors = [
+            ("h1", {"class": "css-1soizd2"}),
+            ("h1", {}),
+            ("h1", {"data-cy": "ad_title"}),
+        ]
+        for tag, attrs in title_selectors:
+            title_elem = content.find(tag, attrs)
+            if title_elem:
+                title = title_elem.get_text(strip=True)
+                break
+        
+        # Try multiple selectors for price
         price = None
-        if content.find("h3", class_="css-ddweki"):
-            price = content.find(
-                "h3", class_="css-ddweki").get_text(strip=True)
+        price_selectors = [
+            ("h3", {"class": "css-ddweki"}),
+            ("h3", {}),
+            ("p", {"data-testid": "ad-price"}),
+            ("span", {"data-testid": "ad-price"}),
+        ]
+        for tag, attrs in price_selectors:
+            price_elem = content.find(tag, attrs)
+            if price_elem:
+                price = price_elem.get_text(strip=True)
+                if price and ("lei" in price.lower() or "ron" in price.lower() or "€" in price or "$" in price):
+                    break
+        
+        # Try multiple selectors for description
         description = None
-        if content.find("div", class_="css-bgzo2k"):
-            description = content.find(
-                "div", class_="css-bgzo2k").get_text(strip=True, separator="\n")
+        desc_selectors = [
+            ("div", {"class": "css-bgzo2k"}),
+            ("div", {"data-cy": "ad_description"}),
+            ("div", {"class": "css-1g5z7m2"}),
+        ]
+        for tag, attrs in desc_selectors:
+            desc_elem = content.find(tag, attrs)
+            if desc_elem:
+                description = desc_elem.get_text(strip=True, separator="\n")
+                if description and len(description) > 10:  # Make sure it's not empty
+                    break
+        
         seller = None
         if content.find("h4", class_="css-1lcz6o7"):
             seller = content.find(
                 "h4", class_="css-1lcz6o7").get_text(strip=True)
+        
         if any(item is None for item in [title, price, description]):
+            logging.warning(f"Missing data for {ad_url}: title={title is not None}, price={price is not None}, desc={description is not None}")
             return None
+        
         ad_data = {
             "title": title,
             "price": price,
