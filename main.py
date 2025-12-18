@@ -68,10 +68,17 @@ def get_new_ads_urls_for_url(target_url: str) -> list:
 
     try:
         ads_urls = scraper.scrape_ads_urls(target_url)
+        logging.info(f"Scraper found {len(ads_urls)} total ads from {target_url}")
     except ValueError as error:
         logging.error(error)
         return []
-    return get_new_ads_urls(ads_urls)
+    except Exception as e:
+        logging.error(f"Unexpected error scraping {target_url}: {e}")
+        return []
+    
+    new_urls = get_new_ads_urls(ads_urls)
+    logging.info(f"Found {len(new_urls)} new ads (out of {len(ads_urls)} total)")
+    return new_urls
 
 
 def main() -> None:

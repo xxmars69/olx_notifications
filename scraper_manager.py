@@ -52,6 +52,8 @@ class OlxScraper:
         if parsed_content is None:
             return None
         ads = parsed_content.select("div.css-1sw7q4x")
+        if len(ads) == 0:
+            logging.warning("No ads found with selector 'div.css-1sw7q4x' - HTML structure may have changed")
         return ads
 
     def get_last_page(self, parsed_content: BeautifulSoup) -> int:
@@ -95,17 +97,31 @@ class OlxScraper:
         
         # Remove query parameters for proper pagination
         clean_url = target_url.split('?')[0] if '?' in target_url else target_url
+        has_query_params = '?' in target_url
+        logging.info(f"Scraping URL: {clean_url} (original had query params: {has_query_params})")
         
         if self.netloc != urlparse(clean_url).netloc:
             raise ValueError(
                 f"Bad URL! OLXRadar is configured to process {self.netloc} links only.")
         while True:
             url = f"{clean_url}/?page={self.current_page}"
+            logging.debug(f"Fetching page {self.current_page}: {url}")
             parsed_content = self.parse_content(url)
+            
+            if parsed_content is None:
+                logging.warning(f"Failed to parse page {self.current_page}, stopping")
+                break
+                
             self.last_page = self.get_last_page(parsed_content)
             ads = self.get_ads(parsed_content)
-            if ads is None:
-                return list(ads_links)
+            
+            if ads is None or len(ads) == 0:
+                logging.info(f"No ads found on page {self.current_page}, stopping")
+                break
+                
+            logging.info(f"Found {len(ads)} ads on page {self.current_page}")
+            
+            ads_before_filter = len(ads_links)
             for ad in ads:
                 link = ad.find("a", class_="css-rc5s2u")
                 if link is not None and link.has_attr("href"):
@@ -117,9 +133,15 @@ class OlxScraper:
                     if self.is_relative_url(link_href):
                         link_href = f"{self.schema}://{self.netloc}{link_href}"
                     ads_links.add(link_href)
+            
+            ads_added = len(ads_links) - ads_before_filter
+            logging.debug(f"Added {ads_added} new ad URLs from page {self.current_page}")
+            
             if self.last_page is None or self.current_page >= self.last_page:
+                logging.info(f"Reached last page ({self.last_page}) or no pagination found")
                 break
             self.current_page += 1
+        logging.info(f"Total ads scraped: {len(ads_links)}")
         return list(ads_links)
 
     def is_relevant_url(self, url: str) -> bool:
