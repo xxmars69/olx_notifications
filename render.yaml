@@ -3,7 +3,7 @@ services:
     name: olx-scraper
     env: python
     buildCommand: pip install -r requirements.txt
-    schedule: "*/30 * * * *"  # La fiecare 30 de minute
+    schedule: "*/8 * * * *"  # La fiecare 8 minute
     startCommand: python main.py
     envVars:
       - key: TELEGRAM_BOT_TOKEN
